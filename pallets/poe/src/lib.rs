@@ -2,6 +2,13 @@
 
 pub use pallet::*;
 
+// 通过test标签表示只有test才会引入的子模块，引入后CRT -p pallet-poe才会跑测试。
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::pallet_prelude::*;
