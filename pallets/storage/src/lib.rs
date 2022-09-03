@@ -5,15 +5,6 @@
 /// <https://docs.substrate.io/reference/frame-pallets/>
 pub use pallet::*;
 
-#[cfg(test)]
-mod mock;
-
-#[cfg(test)]
-mod tests;
-
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
-
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::pallet_prelude::*;
@@ -49,9 +40,10 @@ pub mod pallet {
 	pub type StudentsInfo<T> = StorageMap<
 		_,
 		Blake2_128Concat,
-		u32,	// 学号
-		u128,	// 姓名
-		ValueQuery>;
+		u32,  // 学号
+		u128, // 姓名
+		ValueQuery,
+	>;
 
 	// 宿舍
 	#[pallet::storage]
@@ -59,11 +51,12 @@ pub mod pallet {
 	pub type DormInfo<T> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
-		u32,	// dorm number
+		u32, // dorm number
 		Blake2_128Concat,
-		u32,	// bed number
-		u32,	// student number
-		ValueQuery>;
+		u32, // bed number
+		u32, // student number
+		ValueQuery,
+	>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
@@ -87,7 +80,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(0)]
-		pub fn set_class_info(origin: OriginFor<T>, class: u32)  -> DispatchResultWithPostInfo {
+		pub fn set_class_info(origin: OriginFor<T>, class: u32) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
 			Class::<T>::put(class);
@@ -103,14 +96,11 @@ pub mod pallet {
 			student_number: u32,
 			student_name: u128,
 		) -> DispatchResultWithPostInfo {
-
 			ensure_signed(origin)?;
 
 			StudentsInfo::<T>::insert(&student_number, &student_name);
 
-			Self::deposit_event(Event::SetStudentInfo(
-				student_number,
-				student_name));
+			Self::deposit_event(Event::SetStudentInfo(student_number, student_name));
 
 			Ok(().into())
 		}
@@ -122,17 +112,11 @@ pub mod pallet {
 			bed_number: u32,
 			student_number: u32,
 		) -> DispatchResultWithPostInfo {
-
 			ensure_signed(origin)?;
 
-			DormInfo::<T>::insert(&dorm_number,
-				&bed_number,
-				&student_number);
+			DormInfo::<T>::insert(&dorm_number, &bed_number, &student_number);
 
-			Self::deposit_event(Event::SetDormInfo(
-				dorm_number,
-				bed_number,
-				student_number));
+			Self::deposit_event(Event::SetDormInfo(dorm_number, bed_number, student_number));
 
 			Ok(().into())
 		}
