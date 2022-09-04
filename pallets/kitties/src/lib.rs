@@ -4,9 +4,8 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::pallet_prelude::*;
+	use frame_support::{pallet_prelude::*, traits::Randomness};
 	use frame_system::pallet_prelude::*;
-	use frame_support::traits::Randomness;
 	use sp_io::hashing::blake2_128;
 
 	type KittyIndex = u32;
@@ -39,15 +38,17 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn kitty_owner)]
-	//pub type Kitties<T: Config> = StorageMap<_, Blake2_128Concat, KittyIndex, T::AccountId>;
-	pub type Kitties<T> = StorageMap<_, Blake2_128Concat, KittyIndex, T::AccountId>;
+	pub type KittyOwner<T: Config> = StorageMap<_, Blake2_128Concat, KittyIndex, T::AccountId>;
+
+	// associated type `AccountId` not found
+	// pub type KittyOwner<T> = StorageMap<_, Blake2_128Concat, KittyIndex, T::AccountId>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		KittyCreated(T::AccountId, KittyIndex, Kitty);
-		KittyBread(T::AccountId, KittyIndex, Kitty);
-		KittyTransferred(T::AccountId, T::AccountId, KittyIndex);
+		KittyCreated(T::AccountId, KittyIndex, Kitty),
+		KittyBread(T::AccountId, KittyIndex, Kitty),
+		KittyTransferred(T::AccountId, T::AccountId, KittyIndex),
 	}
 
 	#[pallet::error]
@@ -77,7 +78,11 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(0)]
-		pub fn bread(origin: OriginFor<T>, kitty_id_1: KittyIndex, kitty_id_2: KittyIndex) -> DispatchResult {
+		pub fn bread(
+			origin: OriginFor<T>,
+			kitty_id_1: KittyIndex,
+			kitty_id_2: KittyIndex,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			// check kitty id
@@ -108,17 +113,21 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(0)]
-		pub fn transfer(origin: OriginFor<T>, kitty_id: KittyIndex, new_owner: T::AccountId) -> DispatchResult {
+		pub fn transfer(
+			origin: OriginFor<T>,
+			kitty_id: KittyIndex,
+			new_owner: T::AccountId,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			let kitty = Self::get_kitty(kitty_id).map_err(|_| Error::<T>::InvalidKittyId)?;
+			Self::get_kitty(kitty_id).map_err(|_| Error::<T>::InvalidKittyId)?;
 
 			ensure!(Self::kitty_owner(kitty_id) == Some(who.clone()), Error::<T>::NotOwner);
 
 			KittyOwner::<T>::insert(kitty_id, &new_owner);
 			// <KittyOwner::<T>>::insert(kitty_id, &new_owner);
 
-			Self::deposit_event(Event::KittyTransferred(who, new_owner, kitty));
+			Self::deposit_event(Event::KittyTransferred(who, new_owner, kitty_id));
 			Ok(())
 		}
 	}
@@ -131,7 +140,7 @@ pub mod pallet {
 				<frame_system::Pallet<T>>::extrinsic_index(),
 			);
 
-			payload.using_encoded(blake2_128);
+			payload.using_encoded(blake2_128)
 		}
 
 		fn get_next_id() -> Result<KittyIndex, ()> {
@@ -141,9 +150,11 @@ pub mod pallet {
 			}
 		}
 
-        fn get_kitty(kitty_id: KittyIndex) -> Result<Kitty, ()> {
-            match Self::Kitties(kitty_id),
-            None => Err(()),
-        }
+		fn get_kitty(kitty_id: KittyIndex) -> Result<Kitty, ()> {
+			match Self::kitties(kitty_id) {
+				Some(kitty) => Ok(kitty),
+				None => Err(()),
+			}
+		}
 	}
 }
