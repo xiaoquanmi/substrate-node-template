@@ -46,6 +46,8 @@ pub use sp_runtime::{Perbill, Permill};
 /// Import the template pallet.
 pub use pallet_template;
 
+pub use pallet_kitties;
+
 pub use pallet_storage;
 
 pub use pallet_poe;
@@ -274,6 +276,11 @@ impl pallet_template::Config for Runtime {
 	type Event = Event;
 }
 
+impl pallet_kitties::Config for Runtime {
+	type Event = Event;
+	type Randomness = RandomnessCollectiveFlip;
+}
+
 impl pallet_storage::Config for Runtime {
 	type Event = Event;
 }
@@ -303,6 +310,7 @@ construct_runtime!(
 		TemplateModule: pallet_template,
 		StorageModule: pallet_storage,
 		PoeModule: pallet_poe,
+		KittiesModule: pallet_kitties,
 	}
 );
 
