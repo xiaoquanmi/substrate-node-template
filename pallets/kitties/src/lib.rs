@@ -29,6 +29,9 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+
+		#[pallet::constant]
+		type StakeForEachKitty: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -69,6 +72,7 @@ pub mod pallet {
 		InvalidKittyId,
 		NotOwner,
 		SameKittyId,
+		InsufficientBalance,
 	}
 
 	#[pallet::call]
@@ -78,6 +82,10 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			let kitty_id = Self::get_next_id().map_err(|_| Error::<T>::InvalidKittyId)?;
+
+			// Reserve for create kitty
+			let amount = T::StakeForEachKitty::get();
+			T::Currency::reserve(&who, amount).map_err(|_| Error::<T>::InsufficientBalance)?;
 
 			let dna = Self::random_value(&who);
 			let kitty = Kitty(dna);

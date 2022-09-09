@@ -54,6 +54,7 @@ pub use pallet_poe;
 
 /// An index to a block.
 pub type BlockNumber = u32;
+pub type StakeNumber = u32;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -276,10 +277,15 @@ impl pallet_template::Config for Runtime {
 	type Event = Event;
 }
 
+parameter_types! {
+	pub const StakeForEachKitty: StakeNumber = 1_000;
+}
+
 impl pallet_kitties::Config for Runtime {
 	type Event = Event;
 	type Randomness = RandomnessCollectiveFlip;
 	type Currency = Balances;
+	type StakeForEachKitty = StakeForEachKitty;
 }
 
 impl pallet_storage::Config for Runtime {
