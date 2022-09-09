@@ -4,7 +4,10 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{pallet_prelude::*, traits::Randomness};
+	use frame_support::{
+		pallet_prelude::*,
+		traits::{Currency, Randomness, ReservableCurrency},
+	};
 	use frame_system::pallet_prelude::*;
 	use sp_io::hashing::blake2_128;
 
@@ -18,10 +21,14 @@ pub mod pallet {
 	#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen)]
 	pub struct Kitty(pub [u8; 16]);
 
+	type BalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
+		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -40,6 +47,11 @@ pub mod pallet {
 	#[pallet::getter(fn kitty_owner)]
 	pub type KittyOwner<T: Config> = StorageMap<_, Blake2_128Concat, KittyIndex, T::AccountId>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn price)]
+	pub type Price<T: Config> =
+		StorageMap<_, Blake2_128Concat, KittyIndex, Option<BalanceOf<T>>, ValueQuery>;
+
 	// associated type `AccountId` not found
 	// pub type KittyOwner<T> = StorageMap<_, Blake2_128Concat, KittyIndex, T::AccountId>;
 
@@ -49,6 +61,7 @@ pub mod pallet {
 		KittyCreated(T::AccountId, KittyIndex, Kitty),
 		KittyBread(T::AccountId, KittyIndex, Kitty),
 		KittyTransferred(T::AccountId, T::AccountId, KittyIndex),
+		KittySaled(T::AccountId, KittyIndex, Option<BalanceOf<T>>),
 	}
 
 	#[pallet::error]
@@ -128,6 +141,27 @@ pub mod pallet {
 			// <KittyOwner::<T>>::insert(kitty_id, &new_owner);
 
 			Self::deposit_event(Event::KittyTransferred(who, new_owner, kitty_id));
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn sell_kitty(
+			origin: OriginFor<T>,
+			kitty_id: KittyIndex,
+			price: Option<BalanceOf<T>>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			Self::get_kitty(kitty_id).map_err(|_| Error::<T>::InvalidKittyId)?;
+
+			// Ensure caller is the kitty owner.
+			ensure!(Self::kitty_owner(kitty_id) == Some(who.clone()), Error::<T>::NotOwner);
+
+			// Update the kitty price.
+			Price::<T>::insert(kitty_id, price);
+
+			// Deposit a "KittySaled" event.
+			Self::deposit_event(Event::KittySaled(who, kitty_id, price));
 			Ok(())
 		}
 	}

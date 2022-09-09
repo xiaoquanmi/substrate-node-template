@@ -279,6 +279,7 @@ impl pallet_template::Config for Runtime {
 impl pallet_kitties::Config for Runtime {
 	type Event = Event;
 	type Randomness = RandomnessCollectiveFlip;
+	type Currency = Balances;
 }
 
 impl pallet_storage::Config for Runtime {
