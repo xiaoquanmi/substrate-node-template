@@ -216,66 +216,6 @@ pub mod pallet {
 			Self::deposit_event(Event::KittyTransferred(who, new_owner, kitty_id));
 			Ok(())
 		}
-
-		#[pallet::weight(0)]
-		pub fn sell_kitty(
-			origin: OriginFor<T>,
-			kitty_id: T::KittyIndex,
-			price: Option<BalanceOf<T>>,
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			Self::get_kitty(kitty_id).map_err(|_| Error::<T>::InvalidKittyId)?;
-			// Ensure caller is the kitty owner.
-			ensure!(Self::kitty_owner(kitty_id) == Some(who.clone()), Error::<T>::NotOwner);
-
-			// Update the kitty price.
-			Price::<T>::insert(kitty_id, price);
-
-			// Deposit a "KittySaled" event.
-			Self::deposit_event(Event::KittySaled(who, kitty_id, price));
-			Ok(())
-		}
-
-		#[pallet::weight(0)]
-		pub fn buy_kitty(origin: OriginFor<T>, kitty_id: T::KittyIndex) -> DispatchResult {
-			let buyer = ensure_signed(origin)?;
-			Self::get_kitty(kitty_id).map_err(|_| Error::<T>::InvalidKittyId)?;
-			let seller = Self::kitty_owner(kitty_id).unwrap();
-			// Ensure caller is the kitty owner.
-			ensure!(Some(seller.clone()) != Some(buyer.clone()), Error::<T>::IsOwner);
-
-			// 获取Kitty的价格，如果不存在表示Kitty不出售
-			let kitty_price = Price::<T>::get(kitty_id).ok_or(Error::<T>::KittyNotForSell)?;
-			// 获取买家余额
-			let buyer_balance = T::Currency::free_balance(&buyer);
-			// 质押的金额
-			let stake_amount = T::StakeForEachKitty::get();
-			// 检查买家余额是否足够
-			ensure!(
-				buyer_balance > (kitty_price + stake_amount),
-				Error::<T>::NotEnoughBalanceForBuying
-			);
-
-			// 质押新的拥有者一定金额
-			T::Currency::reserve(&buyer, stake_amount)
-				.map_err(|_| Error::<T>::NotEnoughBalanceForStaking)?;
-
-			// 解除旧拥有者的质押
-			T::Currency::unreserve(&seller, stake_amount);
-
-			// 买家向卖家转账
-			T::Currency::transfer(&buyer, &seller, kitty_price, ExistenceRequirement::KeepAlive)?;
-
-			// 更新Kitty的所有者为买家
-			KittyOwner::<T>::insert(kitty_id, &buyer);
-
-			// 将Kitty从出售列表中移除
-			Price::<T>::remove(kitty_id);
-
-			// 发出交易完成事件
-			Self::deposit_event(Event::KittySold(buyer, seller, kitty_id));
-			Ok(())
-		}
 	}
 
 	impl<T: Config> Pallet<T> {
