@@ -10,6 +10,7 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use sp_io::hashing::blake2_128;
+	use sp_std::vec::Vec;
 
 	type KittyIndex = u32;
 
@@ -35,6 +36,8 @@ pub mod pallet {
 	}
 
 	#[pallet::pallet]
+	// FIXME: ?
+	#[pallet::without_storage_info]
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
@@ -49,6 +52,11 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn kitty_owner)]
 	pub type KittyOwner<T: Config> = StorageMap<_, Blake2_128Concat, KittyIndex, T::AccountId>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn owner_2_kitties)]
+	pub type Owner2Kitties<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<KittyIndex>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn price)]
@@ -75,6 +83,7 @@ pub mod pallet {
 		IsOwner,
 		SameKittyId,
 		InsufficientBalance,
+		MaxLenKitties,
 		KittyNotForSell,
 		NotEnoughBalanceForBuying,
 		NotEnoughBalanceForStaking,
@@ -94,6 +103,23 @@ pub mod pallet {
 
 			let dna = Self::random_value(&who);
 			let kitty = Kitty(dna);
+
+			// add kitty id to owner
+			if Owner2Kitties::<T>::contains_key(&who) {
+				Owner2Kitties::<T>::mutate(
+					&who,
+					|value| -> Result<(), sp_runtime::DispatchError> {
+						if let Some(v) = value {
+							v.push(kitty_id)
+						}
+						Ok(())
+					},
+				)?
+			} else {
+				let mut value = Self::owner_2_kitties(&who).unwrap();
+				value.push(kitty_id);
+				Owner2Kitties::<T>::insert(&who, &value);
+			}
 
 			Kitties::<T>::insert(kitty_id, &kitty);
 			KittyOwner::<T>::insert(kitty_id, &who);

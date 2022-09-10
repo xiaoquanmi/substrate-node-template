@@ -286,6 +286,7 @@ impl pallet_kitties::Config for Runtime {
 	type Randomness = RandomnessCollectiveFlip;
 	type Currency = Balances;
 	type StakeForEachKitty = StakeForEachKitty;
+	// type KittyIndex = Index;
 }
 
 impl pallet_storage::Config for Runtime {
