@@ -4,19 +4,27 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use codec::{Codec, MaxEncodedLen};
+	use core::fmt::Debug;
 	use frame_support::{
 		pallet_prelude::*,
 		traits::{Currency, ExistenceRequirement, Randomness, ReservableCurrency},
 	};
 	use frame_system::pallet_prelude::*;
 	use sp_io::hashing::blake2_128;
+	use sp_runtime::traits::{AtLeast32BitUnsigned, Bounded, One};
 	use sp_std::vec::Vec;
 
-	type KittyIndex = u32;
+	// type KittyIndex = u32;
+
+	// #[pallet::type_value]
+	// pub fn GetDefaultValue() -> KittyIndex {
+	// 	0_u32
+	// }
 
 	#[pallet::type_value]
-	pub fn GetDefaultValue() -> KittyIndex {
-		0_u32
+	pub fn GetDefaultValue<T: Config>() -> T::KittyIndex {
+		T::KittyIndex::default()
 	}
 
 	#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen)]
@@ -33,6 +41,18 @@ pub mod pallet {
 
 		#[pallet::constant]
 		type StakeForEachKitty: Get<BalanceOf<Self>>;
+
+		/// Kitty Index
+		type KittyIndex: Parameter
+			+ Member
+			+ AtLeast32BitUnsigned
+			+ Codec
+			+ Default
+			+ Copy
+			+ MaybeSerializeDeserialize
+			+ Debug
+			+ MaxEncodedLen
+			+ TypeInfo;
 	}
 
 	#[pallet::pallet]
@@ -43,25 +63,27 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_kitty_id)]
-	pub type NextKittyId<T> = StorageValue<_, KittyIndex, ValueQuery, GetDefaultValue>;
+	pub type NextKittyId<T: Config> =
+		StorageValue<_, T::KittyIndex, ValueQuery, GetDefaultValue<T>>;
+	// pub type NextKittyId<T: Config> = StorageValue<_, T::KittyIndex, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn kitties)]
-	pub type Kitties<T> = StorageMap<_, Blake2_128Concat, KittyIndex, Kitty>;
+	pub type Kitties<T: Config> = StorageMap<_, Blake2_128Concat, T::KittyIndex, Kitty>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn kitty_owner)]
-	pub type KittyOwner<T: Config> = StorageMap<_, Blake2_128Concat, KittyIndex, T::AccountId>;
+	pub type KittyOwner<T: Config> = StorageMap<_, Blake2_128Concat, T::KittyIndex, T::AccountId>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn owner_2_kitties)]
 	pub type Owner2Kitties<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<KittyIndex>>;
+		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<T::KittyIndex>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn price)]
 	pub type Price<T: Config> =
-		StorageMap<_, Blake2_128Concat, KittyIndex, Option<BalanceOf<T>>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, T::KittyIndex, Option<BalanceOf<T>>, ValueQuery>;
 
 	// associated type `AccountId` not found
 	// pub type KittyOwner<T> = StorageMap<_, Blake2_128Concat, KittyIndex, T::AccountId>;
@@ -69,11 +91,11 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		KittyCreated(T::AccountId, KittyIndex, Kitty),
-		KittyBread(T::AccountId, KittyIndex, Kitty),
-		KittyTransferred(T::AccountId, T::AccountId, KittyIndex),
-		KittySaled(T::AccountId, KittyIndex, Option<BalanceOf<T>>),
-		KittySold(T::AccountId, T::AccountId, KittyIndex),
+		KittyCreated(T::AccountId, T::KittyIndex, Kitty),
+		KittyBread(T::AccountId, T::KittyIndex, Kitty),
+		KittyTransferred(T::AccountId, T::AccountId, T::KittyIndex),
+		KittySaled(T::AccountId, T::KittyIndex, Option<BalanceOf<T>>),
+		KittySold(T::AccountId, T::AccountId, T::KittyIndex),
 	}
 
 	#[pallet::error]
@@ -116,14 +138,15 @@ pub mod pallet {
 					},
 				)?
 			} else {
-				let mut value = Self::owner_2_kitties(&who).unwrap();
+				let mut value: Vec<T::KittyIndex> = Vec::new();
 				value.push(kitty_id);
 				Owner2Kitties::<T>::insert(&who, &value);
 			}
 
 			Kitties::<T>::insert(kitty_id, &kitty);
 			KittyOwner::<T>::insert(kitty_id, &who);
-			NextKittyId::<T>::set(kitty_id + 1);
+			// NextKittyId::<T>::set(kitty_id + 1);
+			NextKittyId::<T>::set(kitty_id + T::KittyIndex::one());
 
 			Self::deposit_event(Event::KittyCreated(who, kitty_id, kitty));
 			Ok(())
@@ -132,8 +155,8 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn bread(
 			origin: OriginFor<T>,
-			kitty_id_1: KittyIndex,
-			kitty_id_2: KittyIndex,
+			kitty_id_1: T::KittyIndex,
+			kitty_id_2: T::KittyIndex,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
@@ -141,6 +164,10 @@ pub mod pallet {
 			ensure!(kitty_id_1 != kitty_id_2, Error::<T>::SameKittyId);
 			let kitty_1 = Self::get_kitty(kitty_id_1).map_err(|_| Error::<T>::InvalidKittyId)?;
 			let kitty_2 = Self::get_kitty(kitty_id_2).map_err(|_| Error::<T>::InvalidKittyId)?;
+
+			// Reserve for create kitty
+			let amount = T::StakeForEachKitty::get();
+			T::Currency::reserve(&who, amount).map_err(|_| Error::<T>::InsufficientBalance)?;
 
 			// get next kitty id
 			let kitty_id = Self::get_next_id().map_err(|_| Error::<T>::InvalidKittyId)?;
@@ -158,7 +185,7 @@ pub mod pallet {
 
 			Kitties::<T>::insert(kitty_id, &new_kitty);
 			KittyOwner::<T>::insert(kitty_id, &who);
-			NextKittyId::<T>::set(kitty_id + 1);
+			NextKittyId::<T>::set(kitty_id + T::KittyIndex::one());
 
 			Self::deposit_event(Event::KittyBread(who, kitty_id, new_kitty));
 			Ok(())
@@ -167,7 +194,7 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn transfer(
 			origin: OriginFor<T>,
-			kitty_id: KittyIndex,
+			kitty_id: T::KittyIndex,
 			new_owner: T::AccountId,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -175,6 +202,13 @@ pub mod pallet {
 			Self::get_kitty(kitty_id).map_err(|_| Error::<T>::InvalidKittyId)?;
 
 			ensure!(Self::kitty_owner(kitty_id) == Some(who.clone()), Error::<T>::NotOwner);
+
+			// 质押的金额
+			let stake_amount = T::StakeForEachKitty::get();
+			// 转移质押
+			T::Currency::transfer(&who, &new_owner, stake_amount, ExistenceRequirement::KeepAlive)?;
+			T::Currency::reserve(&new_owner, stake_amount)
+				.map_err(|_| Error::<T>::NotEnoughBalanceForStaking)?;
 
 			KittyOwner::<T>::insert(kitty_id, &new_owner);
 			// <KittyOwner::<T>>::insert(kitty_id, &new_owner);
@@ -186,7 +220,7 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn sell_kitty(
 			origin: OriginFor<T>,
-			kitty_id: KittyIndex,
+			kitty_id: T::KittyIndex,
 			price: Option<BalanceOf<T>>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -203,7 +237,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(0)]
-		pub fn buy_kitty(origin: OriginFor<T>, kitty_id: KittyIndex) -> DispatchResult {
+		pub fn buy_kitty(origin: OriginFor<T>, kitty_id: T::KittyIndex) -> DispatchResult {
 			let buyer = ensure_signed(origin)?;
 			Self::get_kitty(kitty_id).map_err(|_| Error::<T>::InvalidKittyId)?;
 			let seller = Self::kitty_owner(kitty_id).unwrap();
@@ -255,14 +289,17 @@ pub mod pallet {
 			payload.using_encoded(blake2_128)
 		}
 
-		fn get_next_id() -> Result<KittyIndex, ()> {
+		fn get_next_id() -> Result<T::KittyIndex, ()> {
 			match Self::next_kitty_id() {
-				KittyIndex::MAX => Err(()),
+				// T::KittyIndex::MAX => Err(()),
+				// T::KittyIndex::max_value() => Err(()),
+				// | ^^^^^^^^^^^^^^^^^^^^^^^^^^ `fn` calls are not allowed in patterns
+				val if val == T::KittyIndex::max_value() => Err(()),
 				val => Ok(val),
 			}
 		}
 
-		fn get_kitty(kitty_id: KittyIndex) -> Result<Kitty, ()> {
+		fn get_kitty(kitty_id: T::KittyIndex) -> Result<Kitty, ()> {
 			match Self::kitties(kitty_id) {
 				Some(kitty) => Ok(kitty),
 				None => Err(()),

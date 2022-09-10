@@ -281,12 +281,14 @@ parameter_types! {
 	pub const StakeForEachKitty: StakeNumber = 1_000;
 }
 
+type KittyIndex = u32;
+
 impl pallet_kitties::Config for Runtime {
 	type Event = Event;
 	type Randomness = RandomnessCollectiveFlip;
 	type Currency = Balances;
 	type StakeForEachKitty = StakeForEachKitty;
-	// type KittyIndex = Index;
+	type KittyIndex = KittyIndex;
 }
 
 impl pallet_storage::Config for Runtime {
