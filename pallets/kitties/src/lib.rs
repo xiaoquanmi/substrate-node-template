@@ -2,6 +2,12 @@
 
 pub use pallet::*;
 
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use codec::{Codec, MaxEncodedLen};
@@ -91,8 +97,8 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		KittyCreated(T::AccountId, T::KittyIndex, Kitty),
-		KittyBread(T::AccountId, T::KittyIndex, Kitty),
+		KittyCreated(T::AccountId, T::KittyIndex),
+		KittyBread(T::AccountId, T::KittyIndex),
 		KittyTransferred(T::AccountId, T::AccountId, T::KittyIndex),
 		KittySaled(T::AccountId, T::KittyIndex, Option<BalanceOf<T>>),
 		KittySold(T::AccountId, T::AccountId, T::KittyIndex),
@@ -105,7 +111,6 @@ pub mod pallet {
 		IsOwner,
 		SameKittyId,
 		InsufficientBalance,
-		MaxLenKitties,
 		KittyNotForSell,
 		NotEnoughBalanceForBuying,
 		NotEnoughBalanceForStaking,
@@ -148,7 +153,7 @@ pub mod pallet {
 			// NextKittyId::<T>::set(kitty_id + 1);
 			NextKittyId::<T>::set(kitty_id + T::KittyIndex::one());
 
-			Self::deposit_event(Event::KittyCreated(who, kitty_id, kitty));
+			Self::deposit_event(Event::KittyCreated(who, kitty_id));
 			Ok(())
 		}
 
@@ -187,7 +192,7 @@ pub mod pallet {
 			KittyOwner::<T>::insert(kitty_id, &who);
 			NextKittyId::<T>::set(kitty_id + T::KittyIndex::one());
 
-			Self::deposit_event(Event::KittyBread(who, kitty_id, new_kitty));
+			Self::deposit_event(Event::KittyBread(who, kitty_id));
 			Ok(())
 		}
 
