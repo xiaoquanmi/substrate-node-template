@@ -63,21 +63,13 @@ fn breed_works() {
 	})
 }
 
-// #[test]
-// fn breed_failed() {
-// 	new_test_ext().execute_with(|| {
-// 		assert_ok!(KittiesModule::create(Origin::signed(1)));
-// 		// kitty_id: [0], owner: 1, count: 1
-// 		assert_noop!(KittiesModule::breed(Origin::signed(1), 0, 0), Error::<Test>::SameParentIndex);
-// 		assert_noop!(KittiesModule::breed(Origin::signed(1), 0, 1), Error::<Test>::InvalidKittyIndex);
-// 		assert_noop!(KittiesModule::breed(Origin::signed(1), 1, 0), Error::<Test>::InvalidKittyIndex);
-//
-// 		assert_ok!(KittiesModule::create(Origin::signed(1)));
-// 		// kitty_id: [0, 1], owner: 1, count: 2
-// 		KittiesCount::<Test>::put(u32::max_value());
-// 		assert_noop!(
-//             KittiesModule::breed(Origin::signed(1), 0, 1),
-//             Error::<Test>::KittiesCountOverflow
-//         );
-// 	})
-// }
+#[test]
+fn breed_failed() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KittiesModule::create(Origin::signed(1)));
+		// kitty_id: [0], owner: 1, count: 1
+		assert_noop!(KittiesModule::breed(Origin::signed(1), 0, 0), Error::<Test>::SameKittyId);
+		assert_noop!(KittiesModule::breed(Origin::signed(1), 0, 1), Error::<Test>::InvalidKittyId);
+		assert_noop!(KittiesModule::breed(Origin::signed(1), 1, 0), Error::<Test>::InvalidKittyId);
+	})
+}
