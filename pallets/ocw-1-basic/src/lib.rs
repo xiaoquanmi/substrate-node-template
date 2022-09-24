@@ -90,4 +90,38 @@ pub mod pallet {
 			}
 		}
 	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn offchain_worker(block_number: T::BlockNumber) {
+			log::info!("hello World from offchain workers! {:?}", block_number);
+		}
+
+		fn on_initialize(_n: T::BlockNumber) -> Weight {
+			log::info!("in on_initialize!");
+			0
+		}
+
+		fn on_finalize(_n: T::BlockNumber) {
+			log::info!("in on_finalize!");
+		}
+
+		fn on_idle(_n: T::BlockNumber, _remaining_weight: Weight) -> Weight {
+			log::info!("in on_idle!");
+			0
+		}
+	}
 }
+
+// 💤 Idle (0 peers), best: #3 (0x30fa…cd0d), finalized #1 (0x7a78…f685), ⬇ 0 ⬆ 0
+// 🙌 Starting consensus session on top of parent 0x30faa7b3a79cf...e1c7d8f71b17b7fccd0d
+// in on_initialize!
+// in on_idle!
+// in on_finalize!
+// 🎁 Prepared block for proposing at 4 (1 ms) [hash:
+// 			0x3e54d07d034cfdf3143977eb67bfbad3050c9370d53a30f2dff3de094afe19ec; parent_hash: 0x30fa…cd0d;
+// 			extrinsics (1): [0xb662…938b]]
+// 🔖 Pre-sealed block for proposal at 4. Hash now
+// 			0xa40c8cd4a09ea78c141b1d4ae8fe01c7ad1c9f7363ef78da3d66d539e847adfc, previously
+// 			0x3e54d07d034cfdf3143977eb67bfbad3050c9370d53a30f2dff3de094afe19ec. ✨Imported #4 (0xa40c…adfc)
+// 2022-09-24 11:03:30 hello World from offchain workers! 4
