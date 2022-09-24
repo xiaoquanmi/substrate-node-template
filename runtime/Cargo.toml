@@ -53,6 +53,7 @@ pallet-template = { version = "4.0.0-dev", default-features = false, path = "../
 pallet-kitties = { version = "4.0.0-dev", default-features = false, path = "../pallets/kitties" }
 pallet-storage = { version = "4.0.0-dev", default-features = false, path = "../pallets/storage" }
 pallet-poe = { version = "4.0.0-dev", default-features = false, path = "../pallets/poe" }
+pallet-ocw-indexing = { version = "4.0.0-dev", default-features = false, path = "../pallets/ocw_indexing" }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.28" }
@@ -75,6 +76,7 @@ std = [
 	"pallet-kitties/std",
 	"pallet-storage/std",
 	"pallet-poe/std",
+	"pallet-ocw-indexing/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",

@@ -52,6 +52,8 @@ pub use pallet_storage;
 
 pub use pallet_poe;
 
+pub use pallet_ocw_indexing;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 pub type StakeNumber = u32;
@@ -300,6 +302,10 @@ impl pallet_poe::Config for Runtime {
 	type Event = Event;
 }
 
+impl pallet_ocw_indexing::Config for Runtime {
+	type Event = Event;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub struct Runtime
@@ -320,6 +326,7 @@ construct_runtime!(
 		TemplateModule: pallet_template,
 		StorageModule: pallet_storage,
 		PoeModule: pallet_poe,
+		OCWIndexingModule: pallet_ocw_indexing,
 		KittiesModule: pallet_kitties,
 	}
 );
