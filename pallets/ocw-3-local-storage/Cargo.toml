@@ -1,5 +1,5 @@
 [package]
-name = "pallet-ocw-2-cross-block"
+name = "pallet-ocw-3-local-storage"
 version = "4.0.0-dev"
 description = "FRAME pallet template for defining custom runtime logic."
 authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]

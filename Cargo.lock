@@ -3794,6 +3794,7 @@ dependencies = [
  "pallet-kitties",
  "pallet-ocw-1-basic",
  "pallet-ocw-2-cross-block",
+ "pallet-ocw-3-local-storage",
  "pallet-poe",
  "pallet-randomness-collective-flip",
  "pallet-storage",
@@ -4086,6 +4087,21 @@ dependencies = [
 
 [[package]]
 name = "pallet-ocw-2-cross-block"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-ocw-3-local-storage"
 version = "4.0.0-dev"
 dependencies = [
  "frame-benchmarking",

@@ -7,8 +7,9 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::pallet_prelude::*;
+	use frame_support::{inherent::Vec, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
+	use sp_runtime::{offchain::storage::StorageValueRef, traits::Zero};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -96,24 +97,50 @@ pub mod pallet {
 		fn offchain_worker(block_number: T::BlockNumber) {
 			log::info!("hello World from offchain workers! {:?}", block_number);
 
-			let timeout = sp_io::offchain::timestamp()
-				.add(sp_runtime::offchain::Duration::from_millis(8_000));
+			if block_number % 2u32.into() != Zero::zero() {
+				// odd
+				let key = Self::derive_key(block_number);
+				let val_ref = StorageValueRef::persistent(&key);
 
-			sp_io::offchain::sleep_until(timeout);
+				// get a local random value
+				let random_slice = sp_io::offchain::random_seed();
+
+				// get a local timestamp
+				let timestamp_u64 = sp_io::offchain::timestamp().unix_millis();
+
+				// combine to a tuple and print it
+				let value = (random_slice, timestamp_u64);
+				log::info!("in odd block, value to write: {:?}", value);
+
+				// write or mutate tuple content to key
+				val_ref.set(&value);
+			} else {
+				// even
+				let key = Self::derive_key(block_number - 1u32.into());
+				let mut val_ref = StorageValueRef::persistent(&key);
+
+				if let Ok(Some(value)) = val_ref.get::<([u8; 32], u64)>() {
+					log::info!("in even block, value read: {:?}", value);
+
+					// delete that key
+					val_ref.clear();
+				}
+			}
 
 			log::info!("Leave from offchain workers! {:?}", block_number);
 		}
 	}
-}
 
-// 💤 Idle (0 peers), best: #4 (0xeef8…46d1), finalized #2 (0x21e7…c33a), ⬇ 0 ⬆ 0
-// 🙌 Starting consensus session on top of parent 0xeef87042c24aa8d2410258...5a2d7acb5bdda44c1b46d1
-// in on_initialize!
-// in on_idle!
-// in on_finalize!
-// 🎁 Prepared block for proposing at 5 (0 ms) [hash: 0xa; parent_hash: 0xe; extrinsics (1): [0xe]]
-// 🔖 Pre-sealed block for proposal at 5. Hash now 0x6f388b, previously 0xa204a2b627e.
-// ✨ Imported #5 (0x6f38…355a)
-// hello World from offchain workers! 5
-// hello World from offchain workers! 5
-// Leave from offchain workers! 4
+	impl<T: Config> Pallet<T> {
+		#[deny(clippy::clone_double_ref)]
+		fn derive_key(block_number: T::BlockNumber) -> Vec<u8> {
+			block_number.using_encoded(|encoded_bn| {
+				b"node-template::storage::"
+					.iter()
+					.chain(encoded_bn)
+					.copied()
+					.collect::<Vec<u8>>()
+			})
+		}
+	}
+}
