@@ -90,4 +90,30 @@ pub mod pallet {
 			}
 		}
 	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn offchain_worker(block_number: T::BlockNumber) {
+			log::info!("hello World from offchain workers! {:?}", block_number);
+
+			let timeout = sp_io::offchain::timestamp()
+				.add(sp_runtime::offchain::Duration::from_millis(8_000));
+
+			sp_io::offchain::sleep_until(timeout);
+
+			log::info!("Leave from offchain workers! {:?}", block_number);
+		}
+	}
 }
+
+// 💤 Idle (0 peers), best: #4 (0xeef8…46d1), finalized #2 (0x21e7…c33a), ⬇ 0 ⬆ 0
+// 🙌 Starting consensus session on top of parent 0xeef87042c24aa8d2410258...5a2d7acb5bdda44c1b46d1
+// in on_initialize!
+// in on_idle!
+// in on_finalize!
+// 🎁 Prepared block for proposing at 5 (0 ms) [hash: 0xa; parent_hash: 0xe; extrinsics (1): [0xe]]
+// 🔖 Pre-sealed block for proposal at 5. Hash now 0x6f388b, previously 0xa204a2b627e.
+// ✨ Imported #5 (0x6f38…355a)
+// hello World from offchain workers! 5
+// hello World from offchain workers! 5
+// Leave from offchain workers! 4
