@@ -9,6 +9,8 @@ pub use pallet::*;
 pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+	use sp_runtime::offchain::storage::StorageValueRef;
+	use sp_std::vec::Vec;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -88,6 +90,28 @@ pub mod pallet {
 					Ok(())
 				},
 			}
+		}
+
+		#[pallet::weight(0)]
+		pub fn set_local_storage(
+			origin: OriginFor<T>,
+			some_number: u32,
+		) -> DispatchResultWithPostInfo {
+			ensure_signed(origin)?;
+			Self::set_local_storage_with_offchain_index(some_number);
+			Ok(().into())
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn derived_key() -> Vec<u8> {
+			b"offchain-index-demo::value".encode()
+		}
+
+		fn set_local_storage_with_offchain_index(some_number: u32) {
+			let key = Self::derived_key();
+			sp_io::offchain_index::set(&key, some_number.encode().as_slice());
+			log::info!(target:"offchain-index-demo", "set some_number ======================== {:?}", some_number);
 		}
 	}
 }
