@@ -43,6 +43,7 @@ use pallet_transaction_payment::CurrencyAdapter;
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
+pub use pallet_ocw_1_basic;
 /// Import the template pallet.
 pub use pallet_template;
 
@@ -277,6 +278,10 @@ impl pallet_template::Config for Runtime {
 	type Event = Event;
 }
 
+impl pallet_ocw_1_basic::Config for Runtime {
+	type Event = Event;
+}
+
 parameter_types! {
 	pub const StakeForEachKitty: StakeNumber = 1_000;
 }
@@ -318,6 +323,7 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
+		OCW1BasicModule: pallet_ocw_1_basic,
 		StorageModule: pallet_storage,
 		PoeModule: pallet_poe,
 		KittiesModule: pallet_kitties,
