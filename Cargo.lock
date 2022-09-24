@@ -3769,6 +3769,7 @@ dependencies = [
  "sp-finality-grandpa",
  "sp-inherents",
  "sp-keyring",
+ "sp-keystore",
  "sp-runtime",
  "sp-timestamp",
  "substrate-build-script-utils",
@@ -3796,6 +3797,7 @@ dependencies = [
  "pallet-ocw-2-cross-block",
  "pallet-ocw-3-local-storage",
  "pallet-ocw-4-http-json",
+ "pallet-ocw-5-signtx",
  "pallet-poe",
  "pallet-randomness-collective-flip",
  "pallet-storage",
@@ -4118,6 +4120,24 @@ dependencies = [
 
 [[package]]
 name = "pallet-ocw-4-http-json"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-ocw-5-signtx"
 version = "4.0.0-dev"
 dependencies = [
  "frame-benchmarking",

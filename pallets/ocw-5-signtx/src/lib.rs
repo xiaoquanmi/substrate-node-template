@@ -5,55 +5,57 @@
 /// <https://docs.substrate.io/reference/frame-pallets/>
 pub use pallet::*;
 
+use sp_core::crypto::KeyTypeId;
+
+pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"ocwd");
+pub mod crypto {
+	use super::KEY_TYPE;
+	use sp_core::sr25519::Signature as Sr25519Signature;
+	use sp_runtime::{
+		app_crypto::{app_crypto, sr25519},
+		traits::Verify,
+		MultiSignature, MultiSigner,
+	};
+	app_crypto!(sr25519, KEY_TYPE);
+
+	pub struct OcwAuthId;
+
+	impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for OcwAuthId {
+		type RuntimeAppPublic = Public;
+		type GenericSignature = sp_core::sr25519::Signature;
+		type GenericPublic = sp_core::sr25519::Public;
+	}
+
+	impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
+		for OcwAuthId
+	{
+		type RuntimeAppPublic = Public;
+		type GenericSignature = sp_core::sr25519::Signature;
+		type GenericPublic = sp_core::sr25519::Public;
+	}
+}
 #[frame_support::pallet]
 pub mod pallet {
+	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-	use serde::{Deserialize, Deserializer};
-	use sp_runtime::offchain::{http, Duration};
-	use sp_std::vec::Vec;
-
-	#[derive(Deserialize, Encode, Decode)]
-	struct GithubInfo {
-		#[serde(deserialize_with = "de_string_to_bytes")]
-		login: Vec<u8>,
-
-		#[serde(deserialize_with = "de_string_to_bytes")]
-		blog: Vec<u8>,
-
-		public_repos: u32,
-	}
-
-	pub fn de_string_to_bytes<'de, D>(de: D) -> Result<Vec<u8>, D::Error>
-	where
-		D: Deserializer<'de>,
-	{
-		let s: &str = Deserialize::deserialize(de)?;
-		Ok(s.as_bytes().to_vec())
-	}
-
-	use core::{convert::TryInto, fmt};
-	impl fmt::Debug for GithubInfo {
-		fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-			write!(
-				f,
-				"{{ login: {}, blog: {}, public_repos: {} }}",
-				sp_std::str::from_utf8(&self.login).map_err(|_| fmt::Error)?,
-				sp_std::str::from_utf8(&self.blog).map_err(|_| fmt::Error)?,
-				&self.public_repos
-			)
-		}
-	}
+	//use serde::{Deserialize, Deserializer};
+	//use sp_runtime::offchain::{http, Duration};
+	use frame_system::offchain::{
+		AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer,
+	};
+	use sp_std::{vec, vec::Vec};
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::generate_store(pub (super) trait Store)]
 	pub struct Pallet<T>(_);
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + CreateSignedTransaction<Call<Self>> {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 	}
 
 	// The pallet's runtime storage items.
@@ -67,7 +69,7 @@ pub mod pallet {
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
@@ -107,7 +109,7 @@ pub mod pallet {
 		}
 
 		/// An example dispatchable that may throw a custom error.
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1, 1))]
 		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 
@@ -124,6 +126,15 @@ pub mod pallet {
 				},
 			}
 		}
+
+		#[pallet::weight(0)]
+		pub fn submit_data(origin: OriginFor<T>, payload: Vec<u8>) -> DispatchResultWithPostInfo {
+			let _who = ensure_signed(origin)?;
+
+			log::info!("in submit_data call: {:?}", payload);
+
+			Ok(().into())
+		}
 	}
 
 	#[pallet::hooks]
@@ -131,9 +142,47 @@ pub mod pallet {
 		fn offchain_worker(block_number: T::BlockNumber) {
 			log::info!("hello World from offchain workers! {:?}", block_number);
 
+			let payload: Vec<u8> = vec![1, 2, 3, 4, 5, 6, 7, 8];
+			_ = Self::send_signed_tx(payload);
+
 			log::info!("Leave from offchain workers! {:?}", block_number);
+		}
+
+		fn on_initialize(_n: T::BlockNumber) -> Weight {
+			log::info!("in on_initialize!");
+			0
+		}
+
+		fn on_finalize(_n: T::BlockNumber) {
+			log::info!("in on_finalize!");
+		}
+
+		fn on_idle(_n: T::BlockNumber, _remaining_weight: Weight) -> Weight {
+			log::info!("in on_idle!");
+			0
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
+		fn send_signed_tx(payload: Vec<u8>) -> Result<(), &'static str> {
+			let signer = Signer::<T, T::AuthorityId>::all_accounts();
+			if !signer.can_sign() {
+				return Err(
+					"No local accounts available. Consider adding one via `author_insertKey` RPC.",
+				)
+			}
+
+			let results = signer
+				.send_signed_transaction(|_account| Call::submit_data { payload: payload.clone() });
+
+			for (acc, res) in &results {
+				match res {
+					Ok(()) => log::info!("[{:?}] Submitted data:{:?}", acc.id, payload),
+					Err(e) => log::error!("[{:?}] Failed to submit transaction: {:?}", acc.id, e),
+				}
+			}
+
+			Ok(())
+		}
+	}
 }
