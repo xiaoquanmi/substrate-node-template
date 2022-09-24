@@ -132,6 +132,7 @@ pub mod pallet {
 			let _who = ensure_signed(origin)?;
 
 			log::info!("in submit_data call: {:?}", payload);
+			Self::set_local_storage_with_offchain_index(payload);
 
 			Ok(().into())
 		}
@@ -164,6 +165,16 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		fn derived_key() -> Vec<u8> {
+			b"offchain-index-demo::value".encode()
+		}
+
+		fn set_local_storage_with_offchain_index(payload: Vec<u8>) {
+			let key = Self::derived_key();
+			sp_io::offchain_index::set(&key, payload.clone().as_slice());
+			log::info!(target:"offchain-index-demo", "set payload => {:?}", payload);
+		}
+
 		fn send_signed_tx(payload: Vec<u8>) -> Result<(), &'static str> {
 			let signer = Signer::<T, T::AuthorityId>::all_accounts();
 			if !signer.can_sign() {
