@@ -46,6 +46,7 @@ pub use sp_runtime::{Perbill, Permill};
 pub use pallet_ocw_1_basic;
 pub use pallet_ocw_2_cross_block;
 pub use pallet_ocw_3_local_storage;
+pub use pallet_ocw_4_http_json;
 /// Import the template pallet.
 pub use pallet_template;
 
@@ -292,6 +293,10 @@ impl pallet_ocw_3_local_storage::Config for Runtime {
 	type Event = Event;
 }
 
+impl pallet_ocw_4_http_json::Config for Runtime {
+	type Event = Event;
+}
+
 parameter_types! {
 	pub const StakeForEachKitty: StakeNumber = 1_000;
 }
@@ -336,6 +341,7 @@ construct_runtime!(
 		OCW1BasicModule: pallet_ocw_1_basic,
 		OCW2CrossBlockModule: pallet_ocw_2_cross_block,
 		OCW3LocalStorageModule: pallet_ocw_3_local_storage,
+		OCW4HTTPJSONModule: pallet_ocw_4_http_json,
 		StorageModule: pallet_storage,
 		PoeModule: pallet_poe,
 		KittiesModule: pallet_kitties,

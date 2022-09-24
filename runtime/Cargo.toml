@@ -53,6 +53,7 @@ pallet-template = { version = "4.0.0-dev", default-features = false, path = "../
 pallet-ocw-1-basic = { version = "4.0.0-dev", default-features = false, path = "../pallets/ocw-1-basic" }
 pallet-ocw-2-cross-block = { version = "4.0.0-dev", default-features = false, path = "../pallets/ocw-2-cross-block" }
 pallet-ocw-3-local-storage= { version = "4.0.0-dev", default-features = false, path = "../pallets/ocw-3-local-storage" }
+pallet-ocw-4-http-json= { version = "4.0.0-dev", default-features = false, path = "../pallets/ocw-4-http-json" }
 pallet-kitties = { version = "4.0.0-dev", default-features = false, path = "../pallets/kitties" }
 pallet-storage = { version = "4.0.0-dev", default-features = false, path = "../pallets/storage" }
 pallet-poe = { version = "4.0.0-dev", default-features = false, path = "../pallets/poe" }
@@ -78,6 +79,7 @@ std = [
 	"pallet-ocw-1-basic/std",
 	"pallet-ocw-2-cross-block/std",
 	"pallet-ocw-3-local-storage/std",
+	"pallet-ocw-4-http-json/std",
 	"pallet-kitties/std",
 	"pallet-storage/std",
 	"pallet-poe/std",
